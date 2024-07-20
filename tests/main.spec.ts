@@ -4,8 +4,7 @@ import { locations } from './locationData';
 
 test.use({
 
-    locale: "pl-PL"
-
+    locale: "pl-PL",
 })
 
 
@@ -26,7 +25,7 @@ test('should average daily temperature be over 22 degrees in Cracow everyday for
     
     await page.goto(locations.krakow)
     await expect(page).toHaveURL(/.*krakow/)
-    await page.getByLabel('accept and close').click();
+    await page.getByLabel('accept and close').click()
 
     let temperatures: string []  = []
    
@@ -54,12 +53,37 @@ test('should average daily temperature be over 22 degrees in Cracow everyday for
     expect(average).toBeGreaterThan(requiredAvg)
 });
 
-// test.only('should average daily temperature be below 42 degrees in Poznan on next Wednesday', async ({ page }) => {
+test('should average daily temperature be below 42 degrees in Poznan on next Wednesday', async ({ page }) => {
 
-   
+    await page.goto(locations.poznan)
+    await expect(page).toHaveURL(/.*poznan/)
+    await page.getByLabel('accept and close').click()
 
+    const firstWed = page.locator('ul.timelineList > li').filter({hasText: 'Śr'}).first()
+  
+    let tempExtremum: string []  = []
+       
+    const temperature = await getTemp(firstWed)
+            
+        if (temperature) {  
+            tempExtremum.push(temperature.trim().slice(0,2))
+            tempExtremum.push(temperature.trim().slice(3,5))     
+            }    
+    
+    console.log(tempExtremum)
 
-// });
+    let sum = 0;
+
+    tempExtremum.forEach(function(item) {
+            
+        sum += parseInt(item);
+    });
+    
+    const average = sum / tempExtremum.length;
+    const requiredAvg: number = 42
+
+    expect(average).toBeLessThan(requiredAvg)
+});
 
 // test('should not average daily temperature differ more than 5 degrees for Szczecin and Cracow on next Monday', async ({ page }) => {
 
