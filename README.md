@@ -1,2 +1,2 @@
-# whather_optio
+# weather_optio
 assessment task
