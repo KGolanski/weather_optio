@@ -1,31 +1,15 @@
-import { test, expect, Locator, Page } from '@playwright/test';
-import { locations } from './locationData';
-
+import { test, expect } from '@playwright/test';
+import { getWeather, getTemp, getAverage, pickCity, closeCookiesModal } from './utils/helpers';
 
 test.use({
-
     locale: "pl-PL",
+    launchOptions: {slowMo: 2000}
 })
 
-
-function getWeather (page: Page, daysFromToday: number) {
-
-    const weatherElement = page.locator('ul.timelineList').locator(`[aria-label^="${daysFromToday} "]`)
-
-    return weatherElement
-}
-
-function getTemp (wheater: Locator){
-
-    return wheater.locator('.temperature').textContent()
-}
- 
-
 test('should average daily temperature be over 22 degrees in Cracow everyday for next 3 days from Today', async ({ page }) => {
-    
-    await page.goto(locations.krakow)
-    await expect(page).toHaveURL(/.*krakow/)
-    await page.getByLabel('accept and close').click()
+
+    pickCity(page, 'krakow')
+    closeCookiesModal(page)
 
     let temperatures: string []  = []
    
@@ -38,16 +22,8 @@ test('should average daily temperature be over 22 degrees in Cracow everyday for
             temperatures.push(temperature.trim().slice(0,2))     
             }    
     } 
-    
-    console.log(temperatures)
-    let sum = 0;
-
-    temperatures.forEach(function(item) {
-            
-        sum += parseInt(item);
-    });
-    
-    const average = sum / temperatures.length;
+        
+    const average = getAverage(temperatures)    
     const requiredAvg: number = 22
 
     expect(average).toBeGreaterThan(requiredAvg)
@@ -55,40 +31,88 @@ test('should average daily temperature be over 22 degrees in Cracow everyday for
 
 test('should average daily temperature be below 42 degrees in Poznan on next Wednesday', async ({ page }) => {
 
-    await page.goto(locations.poznan)
-    await expect(page).toHaveURL(/.*poznan/)
+    pickCity(page,'poznan')    
+
     await page.getByLabel('accept and close').click()
 
     const firstWed = page.locator('ul.timelineList > li').filter({hasText: 'Śr'}).first()
   
-    let tempExtremum: string []  = []
+    let temperatures: string []  = []
        
     const temperature = await getTemp(firstWed)
             
         if (temperature) {  
-            tempExtremum.push(temperature.trim().slice(0,2))
-            tempExtremum.push(temperature.trim().slice(3,5))     
+            temperatures.push(temperature.trim().slice(0,2))
+            temperatures.push(temperature.trim().slice(3,5))     
             }    
     
-    console.log(tempExtremum)
-
-    let sum = 0;
-
-    tempExtremum.forEach(function(item) {
-            
-        sum += parseInt(item);
-    });
-    
-    const average = sum / tempExtremum.length;
+    const average = getAverage(temperatures)  
     const requiredAvg: number = 42
 
     expect(average).toBeLessThan(requiredAvg)
 });
 
-// test('should not average daily temperature differ more than 5 degrees for Szczecin and Cracow on next Monday', async ({ page }) => {
+test('should not average daily temperature differ more than 5 degrees for Szczecin and Cracow on next Monday', async ({ page }) => {
 
-// });
+    const cities = ['szczecin', 'krakow']
+    const day = 'pn'
+    
+    let averages: number []  = []
 
-// test('should average daily temperature for Cracow, Poznań and Szczecin be over 19 degrees on next Monday', async ({ page }) => {
+    for (const index in cities){
+    
+        pickCity(page, cities[index])
+        closeCookiesModal(page)
 
-// });
+        let temperatures: string []  = []
+
+        const expectedDay = page.locator('ul.timelineList > li').filter({hasText:`${day}`}).first()
+        
+        const temperature = await getTemp(expectedDay)
+                
+            if (temperature) {  
+                temperatures.push(temperature.trim().slice(0,2))
+                temperatures.push(temperature.trim().slice(3,5))     
+                }    
+
+        let average: number = getAverage(temperatures)  
+        averages.push(average)
+    }
+
+    const requirement: number = (averages[0] - averages[1])
+    expect(Math.abs(requirement)).toBeLessThan(5)
+});
+ 
+test('should average daily temperature for Cracow, Poznań and Szczecin be over 19 degrees on next Monday', async ({ page }) => {
+    
+    const cities = ['szczecin', 'krakow', 'poznan']
+    const day = 'pn'
+    
+    let averages: number []  = []
+
+    for (const index in cities){
+    
+        pickCity(page, cities[index])
+        closeCookiesModal(page)
+
+        let temperatures: string []  = []
+
+        const expectedDay = page.locator('ul.timelineList > li').filter({hasText:`${day}`}).first()
+        
+        const temperature = await getTemp(expectedDay)
+                
+            if (temperature) {  
+                temperatures.push(temperature.trim().slice(0,2))
+                temperatures.push(temperature.trim().slice(3,5))     
+                }    
+
+        let average: number = getAverage(temperatures)  
+        averages.push(average)
+    }
+
+    console.log(averages)
+    const requirement: boolean = averages.every(temp =>{return temp > 19});
+    
+    console.log(requirement)
+    expect(requirement).toBe(true)
+});
