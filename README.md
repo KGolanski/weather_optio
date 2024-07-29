@@ -1,4 +1,4 @@
-# weather_optio
+# weather_task
 assessment task
 
 ### Initial setup
